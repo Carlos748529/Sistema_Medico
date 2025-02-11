@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request
-import requests_handler
-from config import API_URL
+from requests_handler import get_medical_articles
 
 app = Flask(__name__)
 
@@ -11,19 +10,7 @@ def index():
 
     if request.method == "POST":
         query = request.form["query"]
-        params = {
-            "db": "pubmed",
-            "term": query,
-            "retmode": "json",
-            "retmax": 10  # Número de resultados
-        }
-
-        response = request.get(API_URL, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            if "esearchresult" in data and "idlist" in data["esearchresult"]:
-                pubmed_ids = data["esearchresult"]["idlist"]
-                results = [{"id": pid, "link": f"https://pubmed.ncbi.nlm.nih.gov/{pid}"} for pid in pubmed_ids]
+        results = get_medical_articles(query)
 
     return render_template("index.html", query=query, results=results)
 

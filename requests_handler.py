@@ -1,37 +1,29 @@
-import requests_handler
-from config import API_URL
+import requests
+from flask import Flask, render_template, request
 
-def get_medical_articles(query, max_results=10):
-    """
-    Consulta la API de PubMed para obtener artículos médicos relacionados con la búsqueda.
 
-    Parámetros:
-    - query (str): Término de búsqueda médica.
-    - max_results (int): Número máximo de resultados a obtener.
+app = Flask(__name__)
 
-    Retorna:
-    - Lista de diccionarios con ID y enlace de los artículos.
-    """
-    params = {
-        "db": "pubmed",
-        "term": query,
-        "retmode": "json",
-        "retmax": max_results
-    }
+@app.route("/", methods=["GET", "POST"])
+def index():
+    query = ""
+    results = []
 
+    if request.method == "POST":
+        query = request.form["query"]
+        results = get_medical_articles(query)
+
+    return render_template("index.html", query=query, results=results)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+def get_medical_articles(query):
+    url = f"https://jsonplaceholder.typicode.com/posts?title_like={query}"
     try:
-        response = requests_handler.get(API_URL, params=params)
-        response.raise_for_status()  # Lanza un error si la respuesta no es exitosa
-
-        data = response.json()
-        articles = []
-
-        if "esearchresult" in data and "idlist" in data["esearchresult"]:
-            pubmed_ids = data["esearchresult"]["idlist"]
-            articles = [{"id": pid, "link": f"https://pubmed.ncbi.nlm.nih.gov/{pid}"} for pid in pubmed_ids]
-
-        return articles
-
-    except requests_handler.exceptions.RequestException as e:
-        print(f"Error al consultar la API: {e}")
+        response = requests.get(url)
+        response.raise_for_status()  # Esto lanzará una excepción para códigos de estado HTTP 4xx/5xx
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching articles: {e}")
         return []
